@@ -1,0 +1,2 @@
+#define SECRET_WIFI_NAME "Truong 1"
+#define SECRET_WIFI_PASSWORD "12345678"
