@@ -1,65 +1,61 @@
 #include <DHT.h>
-#include <ESP8266WiFi.h>
+#include <EspMQTTClient.h>
 #include "mqtt_secrets.h"
 
-String apiKey = "0857N68YWU0VGMBE";
-
-const char* server = "api.thingspeak.com";
 #define DHTPIN D1 //pin where the dht11 is connected (D1)
+#define DHTTYPE DHT11
 
-DHT dht(DHTPIN, DHT11);
-WiFiClient client;
+unsigned long delayTime = 10000;
 
-void setup() {
-  Serial.begin(115200);
-  delay(10);
-  dht.begin();
+DHT dht(DHTPIN, DHTTYPE);
 
-  Serial.println("Connecting to ");
-  Serial.println(SECRET_WIFI_NAME);
 
-  WiFi.begin(SECRET_WIFI_NAME, SECRET_WIFI_PASSWORD);
+EspMQTTClient client (
+  SECRET_WIFI_NAME,
+  SECRET_WIFI_PASSWORD,
+  MQTT_BROKER_SERVER_IP,
+  SECRET_MQTT_USERNAME,
+  SECRET_MQTT_PASSWORD, 
+  SECRET_MQTT_CLIENT_ID
+);
 
-  while(WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.println("WiFi Connected");
-}
+void onConnectionEstablished() {
+  // Subscribe to "channels/""/subscribe" and display received message to Serial
+  client.subscribe("channels/2252582/subscribe", [](const String & payload) {
+    Serial.println(payload);  
+  });  
 
-void loop() {
   float h = dht.readHumidity();
   float t = dht.readTemperature();
 
-  if (client.connect(server, 80)) // 184.106.153.149 or api.thingspeak.com
-  {
-    String postStr = apiKey;
-    postStr += "&field1=";
-    postStr += String(t);
-    postStr += "&field2=";
-    postStr += String(h);
-    postStr += "\r\n\r\n";
+  String message = "field1=" + String(t) + 
+                   "&field2=" + String(h);
 
-    client.print("POST /update HTTP/1.1\n");
-    client.print("Host: api.thingspeak.com\n");
-    client.print("Connection.close\n");
-    client.print("X-THINGSPEAKAPIKEY: " + apiKey + "\n");
-    client.print("Connect-Type: application/x-www-form-urlencoded\n");
-    client.print("Content-Length: ");
-    client.print(postStr.length());
-    client.print("\n\n");
-    client.print(postStr);
+  Serial.print("Temperature: ");
+  Serial.print(t);
+  Serial.print(" degrees Celcius, Humidity: ");
+  Serial.print(h);
+  Serial.println("%. Send to Thingspeak.");
 
-    Serial.print("Temperature: ");
-    Serial.print(t);
-    Serial.print(" degrees Celcius, Humidity: ");
-    Serial.print(h);
-    Serial.println("%. Send to Thingspeak.");
-    
-    
-  }
-  client.stop();
-  Serial.println("Waiting...");
-  delay(10000);
+  client.publish("channels/2252582/publish", message);
+
+  // Excute delayed instructions
+  client.executeDelayed(5 * 1000, [](){});
+
+}
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  client.enableDebuggingMessages();
+  client.enableHTTPWebUpdater();
+  client.enableOTA();
+  client.enableLastWillMessage("TestClient/lastwill", "I am going offline");
+
+  
+}
+
+void loop() {
+  client.loop();
+  delay(delayTime);
 }
