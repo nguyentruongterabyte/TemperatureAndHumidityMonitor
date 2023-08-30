@@ -21,7 +21,7 @@ EspMQTTClient client (
 
 void onConnectionEstablished() {
   // Subscribe to "channels/""/subscribe" and display received message to Serial
-  client.subscribe("channels/2252582/subscribe", [](const String & payload) {
+  client.subscribe("channels/" + String(CHANNEL_ID) + "/subscribe", [](const String & payload) {
     Serial.println(payload);  
   });  
 
@@ -37,7 +37,7 @@ void onConnectionEstablished() {
   Serial.print(h);
   Serial.println("%. Send to Thingspeak.");
 
-  client.publish("channels/2252582/publish", message);
+  client.publish("channels/"+ String(CHANNEL_ID) +"/publish", message);
 
   // Excute delayed instructions
   client.executeDelayed(5 * 1000, [](){});
