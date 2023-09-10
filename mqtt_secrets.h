@@ -1,5 +1,5 @@
-#define SECRET_WIFI_NAME "N"
-#define SECRET_WIFI_PASSWORD "12344321"
+#define SECRET_WIFI_NAME "Truong 1"
+#define SECRET_WIFI_PASSWORD "12345678"
 
 #define MQTT_BROKER_SERVER_IP "mqtt3.thingspeak.com"
 

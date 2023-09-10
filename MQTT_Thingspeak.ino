@@ -8,7 +8,8 @@
 unsigned long delayTime = 10000;
 
 DHT dht(DHTPIN, DHTTYPE);
-
+float h = 0.0;
+float t = 0.0;
 
 EspMQTTClient client (
   SECRET_WIFI_NAME,
@@ -19,28 +20,28 @@ EspMQTTClient client (
   SECRET_MQTT_CLIENT_ID
 );
 
+
 void onConnectionEstablished() {
-  // Subscribe to "channels/""/subscribe" and display received message to Serial
-  client.subscribe("channels/" + String(CHANNEL_ID) + "/subscribe", [](const String & payload) {
-    Serial.println(payload);  
-  });  
+      // Subscribe to "channels/""/subscribe" and display received message to Serial
+      client.subscribe("channels/" + String(CHANNEL_ID) + "/subscribe", [](const String & payload) {
+        Serial.println(payload);  
+      });  
 
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
+      Serial.print("Temperature: ");
+      Serial.print(t);
+      Serial.print(" degrees Celcius, Humidity: ");
+      Serial.print(h);
+      Serial.println("%");
+      Serial.println("Send to Thingspeak.");
 
-  String message = "field1=" + String(t) + 
+      String message = "field1=" + String(t) + 
                    "&field2=" + String(h);
 
-  Serial.print("Temperature: ");
-  Serial.print(t);
-  Serial.print(" degrees Celcius, Humidity: ");
-  Serial.print(h);
-  Serial.println("%. Send to Thingspeak.");
+      client.publish("channels/"+ String(CHANNEL_ID) +"/publish", message);
 
-  client.publish("channels/"+ String(CHANNEL_ID) +"/publish", message);
+      // Excute delayed instructions
+      client.executeDelayed(5 * 1000, [](){});
 
-  // Excute delayed instructions
-  client.executeDelayed(5 * 1000, [](){});
 
 }
 
@@ -51,11 +52,18 @@ void setup() {
   client.enableHTTPWebUpdater();
   client.enableOTA();
   client.enableLastWillMessage("TestClient/lastwill", "I am going offline");
-
-  
 }
 
 void loop() {
+  h = dht.readHumidity();
+  t = dht.readTemperature();
+
+  if (isnan(t) || isnan(h)) {
+      Serial.println(F("Failed to read from DHT sensor!"));
+      return;
+  }
+
   client.loop();
+  
   delay(delayTime);
 }
